@@ -32,6 +32,14 @@ const deleteLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const readLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 read requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -118,7 +126,7 @@ app.post('/api/upload-multiple', uploadLimiter, upload.array('files', 10), (req,
 });
 
 // Get list of uploaded files
-app.get('/api/files', (req, res) => {
+app.get('/api/files', readLimiter, (req, res) => {
   try {
     fs.readdir(UPLOAD_DIR, (err, files) => {
       if (err) {
