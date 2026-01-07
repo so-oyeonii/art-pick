@@ -1,0 +1,11 @@
+node_modules/
+uploads/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+client/build/
+client/node_modules/
+.vscode/
+.idea/
+dist/
