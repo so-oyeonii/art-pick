@@ -1,0 +1,18 @@
+{
+  "artspot": {
+    "id": "vivaldi-convention",
+    "name": "Sono Belle Vivaldi Park Convention Center",
+    "nameKo": "소노벨 비발디파크 컨벤션센터",
+    "latitude": 37.6524,
+    "longitude": 127.6874,
+    "radius": 100,
+    "artworkId": "swiftxr-001",
+    "address": "262 Hanchigol-gil, Seo-myeon, Hongcheon-gun, Gangwon-do",
+    "addressKo": "강원특별자치도 홍천군 서면 한치골길 262",
+    "description": "Discover hidden digital art at the convention center of Sono Belle Vivaldi Park resort.",
+    "descriptionKo": "소노벨 비발디파크 리조트 컨벤션센터에서 숨겨진 디지털 아트를 발견하세요.",
+    "hint": "Look for the QR code near the main entrance of the convention center.",
+    "hintKo": "컨벤션센터 정문 근처에서 QR 코드를 찾아보세요.",
+    "isActive": true
+  }
+}
