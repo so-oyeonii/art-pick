@@ -3,6 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
@@ -13,6 +14,23 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
+
+// Rate limiting configuration
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many upload requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const deleteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each IP to 50 delete requests per windowMs
+  message: 'Too many delete requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Middleware
 app.use(cors());
@@ -54,7 +72,7 @@ app.get('/', (req, res) => {
 });
 
 // Upload single file
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', uploadLimiter, upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -76,7 +94,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // Upload multiple files
-app.post('/api/upload-multiple', upload.array('files', 10), (req, res) => {
+app.post('/api/upload-multiple', uploadLimiter, upload.array('files', 10), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -120,7 +138,7 @@ app.get('/api/files', (req, res) => {
 });
 
 // Delete a file
-app.delete('/api/files/:filename', async (req, res) => {
+app.delete('/api/files/:filename', deleteLimiter, async (req, res) => {
   try {
     // Sanitize filename to prevent path traversal attacks
     const filename = path.basename(req.params.filename);
