@@ -120,16 +120,21 @@ app.get('/api/files', (req, res) => {
 });
 
 // Delete a file
-app.delete('/api/files/:filename', (req, res) => {
+app.delete('/api/files/:filename', async (req, res) => {
   try {
-    const filename = req.params.filename;
+    // Sanitize filename to prevent path traversal attacks
+    const filename = path.basename(req.params.filename);
     const filepath = path.join(UPLOAD_DIR, filename);
 
-    if (!fs.existsSync(filepath)) {
+    // Check if file exists
+    try {
+      await fs.promises.access(filepath);
+    } catch {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    fs.unlinkSync(filepath);
+    // Delete file asynchronously
+    await fs.promises.unlink(filepath);
     res.json({ message: 'File deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
