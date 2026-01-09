@@ -1,11 +1,18 @@
-import { Box, MapPin } from 'lucide-react'
+import { Box, MapPin, Trash2, ExternalLink } from 'lucide-react'
 import type { ArtItem } from '@/lib/types'
 
 interface CollectionViewProps {
   inventory: ArtItem[]
+  onRemove: (id: string) => void
 }
 
-export default function CollectionView({ inventory }: CollectionViewProps) {
+export default function CollectionView({ inventory, onRemove }: CollectionViewProps) {
+  const handleViewArt = (item: ArtItem) => {
+    if (item.arUrl && item.arUrl !== '#') {
+      window.open(item.arUrl, '_blank')
+    }
+  }
+
   return (
     <div className="w-full h-full overflow-y-auto bg-neutral-50">
       <div className="max-w-4xl mx-auto p-6">
@@ -22,8 +29,22 @@ export default function CollectionView({ inventory }: CollectionViewProps) {
             {inventory.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden group relative"
               >
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`${item.korTitle}을(를) 컬렉션에서 삭제하시겠습니까?`)) {
+                      onRemove(item.id)
+                    }
+                  }}
+                  className="absolute top-4 right-4 z-10 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                  title="삭제"
+                >
+                  <Trash2 size={16} />
+                </button>
+
                 <div className="p-6">
                   <div className="flex items-start gap-4">
                     <div className={`w-20 h-20 ${item.color} rounded-xl flex items-center justify-center text-4xl flex-shrink-0`}>
@@ -47,6 +68,17 @@ export default function CollectionView({ inventory }: CollectionViewProps) {
                       </span>
                     )}
                   </div>
+
+                  {/* AR 보기 버튼 */}
+                  {item.arUrl && item.arUrl !== '#' && (
+                    <button
+                      onClick={() => handleViewArt(item)}
+                      className="w-full mt-4 bg-neutral-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors"
+                    >
+                      <ExternalLink size={18} />
+                      AR로 보기
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

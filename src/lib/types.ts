@@ -26,6 +26,8 @@ export interface ArtSpot {
   icon: string
   color: string
   accent: string
+  isActive: boolean      // 실제 QR 코드 있음 (GPS 필수)
+  requiresGPS: boolean   // GPS 위치 체크 필요
 }
 
 // 뷰 타입
