@@ -1,5 +1,5 @@
-import { MapPin, Scan, Lock, ZoomIn, ZoomOut } from 'lucide-react'
-import { useState } from 'react'
+import { MapPin, Scan, Lock, ZoomIn, ZoomOut, Navigation } from 'lucide-react'
+import { useState, useRef } from 'react'
 import type { ArtSpot } from '@/lib/types'
 
 interface MapViewProps {
@@ -22,6 +22,41 @@ export default function MapView({
   userLng
 }: MapViewProps) {
   const [zoom, setZoom] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef({ x: 0, y: 0 })
+  const mapRef = useRef<HTMLDivElement>(null)
+
+  // 드래그 시작
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true)
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    dragStart.current = { x: clientX - offset.x, y: clientY - offset.y }
+  }
+
+  // 드래그 중
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    setOffset({
+      x: clientX - dragStart.current.x,
+      y: clientY - dragStart.current.y
+    })
+  }
+
+  // 드래그 종료
+  const handleDragEnd = () => {
+    setIsDragging(false)
+  }
+
+  // 내 위치로 리셋
+  const resetToMyLocation = () => {
+    setOffset({ x: 0, y: 0 })
+    setZoom(1)
+  }
 
   // GPS 좌표를 화면 좌표로 변환 (상대적 위치 계산)
   const getPosition = (lat: number, lng: number) => {
@@ -50,8 +85,19 @@ export default function MapView({
     <div className="w-full h-full bg-slate-100 relative overflow-hidden">
       {/* 지도 배경 */}
       <div 
+        ref={mapRef}
         className="absolute inset-0 transition-transform duration-300"
-        style={{ transform: `scale(${zoom})` }}
+        style={{ 
+          transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleDragStart}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+        onTouchStart={handleDragStart}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
       >
         {/* 그리드 패턴 */}
         <div className="absolute inset-0 opacity-30" style={{
@@ -134,6 +180,13 @@ export default function MapView({
           className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition"
         >
           <ZoomOut size={20} />
+        </button>
+        <button
+          onClick={resetToMyLocation}
+          className="w-10 h-10 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition"
+          title="내 위치로"
+        >
+          <Navigation size={20} />
         </button>
       </div>
 
