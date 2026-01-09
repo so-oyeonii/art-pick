@@ -21,8 +21,8 @@ export default function MapView({
   userLat,
   userLng
 }: MapViewProps) {
-  const [zoom, setZoom] = useState(1)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(2.5)
+  const [offset, setOffset] = useState({ x: 0, y: -100 })
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef({ x: 0, y: 0 })
   const mapRef = useRef<HTMLDivElement>(null)
@@ -54,8 +54,8 @@ export default function MapView({
 
   // 내 위치로 리셋
   const resetToMyLocation = () => {
-    setOffset({ x: 0, y: 0 })
-    setZoom(1)
+    setOffset({ x: 0, y: -100 })
+    setZoom(2.5)
   }
 
   // GPS 좌표를 화면 좌표로 변환 (상대적 위치 계산)
@@ -72,9 +72,9 @@ export default function MapView({
     const latDiff = (lat - centerLat) * 111000 // 미터
     const lngDiff = (lng - centerLng) * 88000 // 한국 위도에서 경도 보정
     
-    // 화면 중앙을 기준으로 상대 위치 계산 (100m = 10%)
-    const x = 50 + (lngDiff / 100) * 10 * zoom
-    const y = 50 - (latDiff / 100) * 10 * zoom
+    // 화면 중앙을 기준으로 상대 위치 계산 (100m = 7%로 스케일 조정)
+    const x = 50 + (lngDiff / 100) * 7 * zoom
+    const y = 50 - (latDiff / 100) * 7 * zoom
     
     return { x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) }
   }
@@ -142,7 +142,7 @@ export default function MapView({
               }}
             >
               <div className="relative">
-                <div className={`w-16 h-16 ${spot.color} rounded-2xl shadow-lg flex items-center justify-center text-3xl border-2 ${
+                <div className={`w-14 h-14 ${spot.color} rounded-2xl shadow-lg flex items-center justify-center text-2xl border-2 ${
                   targetSpot?.id === spot.id ? 'border-neutral-900 ring-4 ring-neutral-900/20' : 'border-white'
                 }`}>
                   {spot.icon}
