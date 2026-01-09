@@ -102,6 +102,16 @@ export default function App() {
     showToast('삭제 완료', '컬렉션에서 제거되었습니다.')
   }
 
+  const handleNavigateToSpot = (item: ArtItem) => {
+    // 가상 작품을 컬렉션에서 선택 시 지도로 이동하고 해당 spot 선택
+    const spot = spotsWithDistance.find(s => s.id === item.id)
+    if (spot) {
+      setTargetSpot(spot)
+      setCurrentView('map')
+      showToast('위치 표시', `${spot.korTitle}의 위치를 지도에 표시했습니다`)
+    }
+  }
+
   return (
     <div className="w-full h-screen bg-neutral-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -182,6 +192,7 @@ export default function App() {
           <CollectionView 
             inventory={inventory}
             onRemove={handleRemoveFromCollection}
+            onNavigateToSpot={handleNavigateToSpot}
           />
         )}
         

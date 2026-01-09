@@ -1,12 +1,13 @@
-import { Box, MapPin, Trash2, ExternalLink } from 'lucide-react'
+import { Box, MapPin, Trash2, ExternalLink, Map } from 'lucide-react'
 import type { ArtItem } from '@/lib/types'
 
 interface CollectionViewProps {
   inventory: ArtItem[]
   onRemove: (id: string) => void
+  onNavigateToSpot?: (item: ArtItem) => void
 }
 
-export default function CollectionView({ inventory, onRemove }: CollectionViewProps) {
+export default function CollectionView({ inventory, onRemove, onNavigateToSpot }: CollectionViewProps) {
   const handleViewArt = (item: ArtItem) => {
     if (item.arUrl && item.arUrl !== '#') {
       window.open(item.arUrl, '_blank')
@@ -77,6 +78,17 @@ export default function CollectionView({ inventory, onRemove }: CollectionViewPr
                     >
                       <ExternalLink size={18} />
                       AR로 보기
+                    </button>
+                  )}
+
+                  {/* 지도에서 보기 버튼 (가상 작품) */}
+                  {(!item.arUrl || item.arUrl === '#') && onNavigateToSpot && (
+                    <button
+                      onClick={() => onNavigateToSpot(item)}
+                      className="w-full mt-4 bg-purple-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-600 transition-colors"
+                    >
+                      <Map size={18} />
+                      지도에서 보기
                     </button>
                   )}
                 </div>

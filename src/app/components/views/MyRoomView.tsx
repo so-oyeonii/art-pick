@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Home, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Home, X, ExternalLink } from 'lucide-react'
 import type { ArtItem } from '@/lib/types'
 
 interface MyRoomViewProps {
@@ -14,6 +14,8 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
   const [activeTab, setActiveTab] = useState<'virtual' | 'ar'>('virtual')
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [arPlaneDetected, setArPlaneDetected] = useState(false)
+  const [draggingItem, setDraggingItem] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // AR 모드일 때 바닥 감지 시뮬레이션
   useEffect(() => {
@@ -28,14 +30,45 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
     const newItem: PlacedItem = {
       ...item,
       uid: `${item.id}-${Date.now()}`,
-      x: Math.random() * 60 + 20, // 20-80%
-      y: Math.random() * 50 + 25  // 25-75%
+      x: Math.random() * 60 + 20,
+      y: Math.random() * 50 + 25
     }
     setPlacedItems([...placedItems, newItem])
   }
 
   const handleRemove = (uid: string) => {
     setPlacedItems(placedItems.filter(item => item.uid !== uid))
+  }
+
+  const handleDragStart = (e: React.MouseEvent, uid: string) => {
+    e.preventDefault()
+    setDraggingItem(uid)
+  }
+
+  const handleDrag = (e: React.MouseEvent) => {
+    if (!draggingItem || !containerRef.current) return
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setPlacedItems(items =>
+      items.map(item =>
+        item.uid === draggingItem
+          ? { ...item, x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) }
+          : item
+      )
+    )
+  }
+
+  const handleDragEnd = () => {
+    setDraggingItem(null)
+  }
+
+  const handleViewAR = (item: ArtItem) => {
+    if (item.arUrl && item.arUrl !== '#') {
+      window.open(item.arUrl, '_blank')
+    }
   }
 
   return (
@@ -61,40 +94,87 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
       </div>
 
       {/* 캔버스 */}
-      <div className="flex-1 relative overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden"
+        onMouseMove={handleDrag}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+      >
         {activeTab === 'virtual' ? (
-          <div className="w-full h-full bg-gradient-to-b from-neutral-100 to-neutral-200 relative" style={{ perspective: '1000px' }}>
-            {/* 가상 방 벽 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent" />
+          <div className="w-full h-full relative" style={{ perspective: '1200px' }}>
+            {/* 방 배경 - 더 현실적인 갤러리 느낌 */}
+            <div className="absolute inset-0">
+              {/* 바닥 */}
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-b from-neutral-300 to-neutral-400"
+                style={{ 
+                  transform: 'rotateX(60deg) translateZ(-200px)',
+                  transformOrigin: 'bottom',
+                  backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 100px, rgba(0,0,0,0.05) 100px)'
+                }}
+              />
+              {/* 벽 */}
+              <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
+              {/* 조명 효과 */}
+              <div className="absolute top-0 left-1/2 w-96 h-96 bg-yellow-100/30 rounded-full blur-3xl transform -translate-x-1/2" />
+            </div>
             
             {/* 배치된 아이템들 */}
             {placedItems.map((item) => (
-              <button
+              <div
                 key={item.uid}
-                onClick={() => handleRemove(item.uid)}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all group"
-                style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all group"
+                style={{ 
+                  left: `${item.x}%`, 
+                  top: `${item.y}%`,
+                  cursor: draggingItem === item.uid ? 'grabbing' : 'grab'
+                }}
+                onMouseDown={(e) => handleDragStart(e, item.uid)}
               >
                 <div className="relative">
-                  {/* 프레임 */}
-                  <div className={`w-24 h-32 ${item.color} rounded-lg shadow-2xl flex items-center justify-center text-4xl border-4 border-white`}>
+                  {/* 액자 프레임 */}
+                  <div className={`w-28 h-36 ${item.color} rounded-lg shadow-2xl flex flex-col items-center justify-center text-4xl border-8 border-amber-900 bg-gradient-to-br from-white to-gray-50`}>
                     {item.icon}
+                    <div className="text-xs font-bold mt-2 text-neutral-700">{item.korTitle}</div>
                   </div>
-                  {/* 바닥 그림자 */}
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-2 bg-black/10 rounded-full blur-sm" />
-                  {/* 삭제 힌트 */}
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {/* 벽 그림자 */}
+                  <div className="absolute -bottom-2 -right-2 w-full h-full bg-black/5 rounded-lg -z-10 blur-sm" />
+                  
+                  {/* AR 보기 버튼 (실제 작품인 경우) */}
+                  {item.arUrl && item.arUrl !== '#' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewAR(item)
+                      }}
+                      className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 whitespace-nowrap"
+                    >
+                      <ExternalLink size={12} />
+                      AR 보기
+                    </button>
+                  )}
+                  
+                  {/* 삭제 버튼 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRemove(item.uid)
+                    }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
                     <X className="text-white" size={12} />
-                  </div>
+                  </button>
                 </div>
-              </button>
+              </div>
             ))}
 
             {placedItems.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-neutral-400">
-                  <Home size={48} className="mx-auto mb-2" />
-                  <p>하단에서 작품을 선택하여 배치하세요</p>
+                <div className="text-center text-neutral-500">
+                  <Home size={64} className="mx-auto mb-4" />
+                  <p className="text-lg font-bold">나만의 갤러리를 꾸며보세요</p>
+                  <p className="text-sm mt-2">하단에서 작품을 선택하여 배치하고<br/>드래그로 위치를 조정하세요</p>
                 </div>
               </div>
             )}
@@ -124,24 +204,49 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
 
                 {/* 배치된 아이템들 */}
                 {placedItems.map((item) => (
-                  <button
+                  <div
                     key={item.uid}
-                    onClick={() => handleRemove(item.uid)}
-                    className="absolute transform -translate-x-1/2 hover:scale-110 transition-all group animate-float"
-                    style={{ left: `${item.x}%`, bottom: `${item.y}%` }}
+                    className="absolute transform -translate-x-1/2 transition-all group"
+                    style={{ 
+                      left: `${item.x}%`, 
+                      bottom: `${item.y}%`,
+                      cursor: draggingItem === item.uid ? 'grabbing' : 'grab'
+                    }}
+                    onMouseDown={(e) => handleDragStart(e, item.uid)}
                   >
-                    <div className="relative">
+                    <div className="relative animate-float">
                       <div className={`w-32 h-40 ${item.color} rounded-lg shadow-2xl flex items-center justify-center text-5xl border-4 border-white`}>
                         {item.icon}
                       </div>
                       <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white/90 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
                         {item.korTitle}
                       </div>
-                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      
+                      {/* AR 보기 버튼 */}
+                      {item.arUrl && item.arUrl !== '#' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleViewAR(item)
+                          }}
+                          className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                        >
+                          <ExternalLink size={12} />
+                          AR
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRemove(item.uid)
+                        }}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
                         <X className="text-white" size={16} />
-                      </div>
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
 
                 {placedItems.length === 0 && (
@@ -171,11 +276,16 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
                 key={item.id}
                 onClick={() => (activeTab === 'ar' && !arPlaneDetected) ? null : handlePlace(item)}
                 disabled={activeTab === 'ar' && !arPlaneDetected}
-                className={`flex-shrink-0 ${item.color} w-20 h-20 rounded-xl flex items-center justify-center text-3xl border-2 border-white shadow-lg hover:scale-110 transition-all ${
+                className={`flex-shrink-0 ${item.color} w-20 h-20 rounded-xl flex items-center justify-center text-3xl border-2 border-white shadow-lg hover:scale-110 transition-all relative ${
                   activeTab === 'ar' && !arPlaneDetected ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {item.icon}
+                {item.arUrl && item.arUrl !== '#' && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <ExternalLink size={10} className="text-white" />
+                  </div>
+                )}
               </button>
             ))}
           </div>
