@@ -1,33 +1,32 @@
-import { Artwork, ArtSpot } from '@/types/index';
+import type { ArtSpot } from './types'
 
-export const ARTWORK: Artwork = {
-  id: 'swiftxr-001',
-  title: 'Digital Dimensions',
-  titleKo: '디지털 디멘션',
-  description: 'An interactive 3D sculpture exploring the boundaries between physical and digital realms.',
-  descriptionKo: '물리적 세계와 디지털 세계의 경계를 탐구하는 인터랙티브 3D 조각 작품입니다.',
-  artist: 'ARt-Pick Studio',
-  imageUrl: '/images/artwork-preview.png',
-  thumbnailUrl: '/images/artwork-thumb.png',
-  arUrl: 'https://seoyoung.swiftxr.site/seo-001',
-  qrCodeUrl: '/qr-code.png',
-  category: 'digital',
-  createdAt: '2025-01-07T00:00:00Z',
-};
-
-export const ARTSPOT: ArtSpot = {
-  id: 'vivaldi-convention',
-  name: 'Sono Belle Vivaldi Park Convention Center',
-  nameKo: '소노벨 비발디파크 컨벤션센터',
-  latitude: 37.6524,
-  longitude: 127.6874,
-  radius: 100,
-  artworkId: 'swiftxr-001',
-  address: '262 Hanchigol-gil, Seo-myeon, Hongcheon-gun, Gangwon-do',
-  addressKo: '강원특별자치도 홍천군 서면 한치골길 262',
-  description: 'Discover hidden digital art at the convention center.',
-  descriptionKo: '컨벤션센터에서 숨겨진 디지털 아트를 발견하세요.',
-  hint: 'Look for the QR code near the main entrance.',
-  hintKo: '정문 근처에서 QR 코드를 찾아보세요.',
-  isActive: true,
-};
+export const ART_SPOTS: ArtSpot[] = [
+  {
+    id: 'pieta',
+    title: 'Pietà',
+    korTitle: '피에타',
+    artist: 'Michelangelo',
+    lat: 37.6524,
+    lng: 127.6874,
+    distance: '350m',
+    description: '바티칸의 보물을 비발디파크에서 발견하세요.',
+    arUrl: 'https://seoyoung.swiftxr.site/seo-001',
+    icon: '✝️',
+    color: 'bg-stone-100',
+    accent: 'text-stone-600'
+  },
+  {
+    id: 'david',
+    title: 'David',
+    korTitle: '다비드',
+    artist: 'Michelangelo',
+    lat: 37.5660,
+    lng: 126.9784,
+    distance: '820m',
+    description: '시청 광장 근처에서 거인을 만나보세요.',
+    arUrl: 'https://seoyoung.swiftxr.site/seo-002',
+    icon: '🗿',
+    color: 'bg-orange-50',
+    accent: 'text-orange-600'
+  }
+]
