@@ -142,10 +142,10 @@ export default function MapView({
               }}
             >
               <div className="relative">
-                <div className={`w-14 h-14 ${spot.color} rounded-2xl shadow-lg flex items-center justify-center text-2xl border-2 ${
+                <div className={`w-14 h-14 ${spot.color} rounded-2xl shadow-lg flex items-center justify-center overflow-hidden border-2 ${
                   targetSpot?.id === spot.id ? 'border-neutral-900 ring-4 ring-neutral-900/20' : 'border-white'
                 }`}>
-                  {spot.icon}
+                  <img src={spot.icon} alt={spot.korTitle} className="w-full h-full object-cover" />
                 </div>
                 
                 {/* Coming Soon 배지 (가상 작품) */}
@@ -195,8 +195,8 @@ export default function MapView({
         {targetSpot ? (
           <div>
             <div className="flex items-start gap-4">
-              <div className={`w-16 h-16 ${targetSpot.color} rounded-xl flex items-center justify-center text-3xl flex-shrink-0`}>
-                {targetSpot.icon}
+              <div className={`w-16 h-16 ${targetSpot.color} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0`}>
+                <img src={targetSpot.icon} alt={targetSpot.korTitle} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">

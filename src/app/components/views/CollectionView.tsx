@@ -1,4 +1,5 @@
-import { Box, MapPin, Trash2, ExternalLink, Map } from 'lucide-react'
+import { Box, MapPin, Trash2, ExternalLink, Map, X } from 'lucide-react'
+import { useState } from 'react'
 import type { ArtItem } from '@/lib/types'
 
 interface CollectionViewProps {
@@ -8,9 +9,24 @@ interface CollectionViewProps {
 }
 
 export default function CollectionView({ inventory, onRemove, onNavigateToSpot }: CollectionViewProps) {
+  const [selectedImage, setSelectedImage] = useState<ArtItem | null>(null)
+
   const handleViewArt = (item: ArtItem) => {
     if (item.arUrl && item.arUrl !== '#') {
       window.open(item.arUrl, '_blank')
+    }
+  }
+
+  const handleCardClick = (item: ArtItem) => {
+    console.log('카드 클릭:', item.korTitle, 'arUrl:', item.arUrl)
+    // 실제 AR 작품이면 바로 AR 링크로 이동
+    if (item.arUrl && item.arUrl !== '#') {
+      console.log('AR 링크로 이동:', item.arUrl)
+      handleViewArt(item)
+    } else {
+      // 가상 작품이면 팝업으로 이미지 보기
+      console.log('팝업 열기')
+      setSelectedImage(item)
     }
   }
 
@@ -30,7 +46,8 @@ export default function CollectionView({ inventory, onRemove, onNavigateToSpot }
             {inventory.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden group relative"
+                onClick={() => handleCardClick(item)}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden group relative cursor-pointer"
               >
                 {/* 삭제 버튼 */}
                 <button
@@ -48,8 +65,26 @@ export default function CollectionView({ inventory, onRemove, onNavigateToSpot }
 
                 <div className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className={`w-20 h-20 ${item.color} rounded-xl flex items-center justify-center text-4xl flex-shrink-0`}>
-                      {item.icon}
+                    {/* 이미지 */}
+                    <div className={`w-20 h-20 ${item.color} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 p-2`}>
+                      <img 
+                        src={item.icon} 
+                        alt={item.korTitle} 
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          console.error('이미지 로드 실패:', item.icon)
+                          // 이미지 로드 실패 시 텍스트로 대체
+                          e.currentTarget.style.display = 'none'
+                          const parent = e.currentTarget.parentElement
+                          if (parent && !parent.querySelector('.fallback-icon')) {
+                            const fallback = document.createElement('div')
+                            fallback.className = 'fallback-icon text-4xl'
+                            fallback.textContent = item.korTitle.charAt(0)
+                            parent.appendChild(fallback)
+                          }
+                        }}
+                      />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-serif text-xl font-bold mb-1">{item.korTitle}</h3>
@@ -69,34 +104,53 @@ export default function CollectionView({ inventory, onRemove, onNavigateToSpot }
                       </span>
                     )}
                   </div>
-
-                  {/* AR 보기 버튼 */}
-                  {item.arUrl && item.arUrl !== '#' && (
-                    <button
-                      onClick={() => handleViewArt(item)}
-                      className="w-full mt-4 bg-neutral-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors"
-                    >
-                      <ExternalLink size={18} />
-                      AR로 보기
-                    </button>
-                  )}
-
-                  {/* 지도에서 보기 버튼 (가상 작품) */}
-                  {(!item.arUrl || item.arUrl === '#') && onNavigateToSpot && (
-                    <button
-                      onClick={() => onNavigateToSpot(item)}
-                      className="w-full mt-4 bg-purple-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-600 transition-colors"
-                    >
-                      <Map size={18} />
-                      지도에서 보기
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* 이미지 팝업 */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors z-10"
+          >
+            <X size={24} className="text-neutral-900" />
+          </button>
+          
+          <div className="relative max-w-2xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className={`w-full aspect-square ${selectedImage.color} flex items-center justify-center p-8`}>
+              <img 
+                src={selectedImage.icon} 
+                alt={selectedImage.korTitle}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div className="p-6">
+              <h3 className="font-serif text-2xl font-bold mb-2">{selectedImage.korTitle}</h3>
+              <p className="text-neutral-600 mb-3">{selectedImage.artist}</p>
+              <p className="text-neutral-700">{selectedImage.description}</p>
+              
+              {/* AR 보기 버튼 */}
+              {selectedImage.arUrl && selectedImage.arUrl !== '#' && (
+                <button
+                  onClick={() => handleViewArt(selectedImage)}
+                  className="w-full mt-4 bg-neutral-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors"
+                >
+                  <ExternalLink size={18} />
+                  AR로 보기
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

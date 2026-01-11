@@ -134,8 +134,8 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
               >
                 <div className="relative">
                   {/* 액자 프레임 */}
-                  <div className={`w-28 h-36 ${item.color} rounded-lg shadow-2xl flex flex-col items-center justify-center text-4xl border-8 border-amber-900 bg-gradient-to-br from-white to-gray-50`}>
-                    {item.icon}
+                  <div className={`w-28 h-36 ${item.color} rounded-lg shadow-2xl flex flex-col items-center justify-center border-8 border-amber-900 bg-gradient-to-br from-white to-gray-50 overflow-hidden p-2`}>
+                    <img src={item.icon} alt={item.korTitle} className="w-20 h-20 object-cover" />
                     <div className="text-xs font-bold mt-2 text-neutral-700">{item.korTitle}</div>
                   </div>
                   {/* 벽 그림자 */}
@@ -215,8 +215,8 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
                     onMouseDown={(e) => handleDragStart(e, item.uid)}
                   >
                     <div className="relative animate-float">
-                      <div className={`w-32 h-40 ${item.color} rounded-lg shadow-2xl flex items-center justify-center text-5xl border-4 border-white`}>
-                        {item.icon}
+                      <div className={`w-32 h-40 ${item.color} rounded-lg shadow-2xl flex items-center justify-center border-4 border-white overflow-hidden p-4`}>
+                        <img src={item.icon} alt={item.korTitle} className="w-24 h-24 object-cover" />
                       </div>
                       <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white/90 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
                         {item.korTitle}
@@ -276,11 +276,11 @@ export default function MyRoomView({ inventory }: MyRoomViewProps) {
                 key={item.id}
                 onClick={() => (activeTab === 'ar' && !arPlaneDetected) ? null : handlePlace(item)}
                 disabled={activeTab === 'ar' && !arPlaneDetected}
-                className={`flex-shrink-0 ${item.color} w-20 h-20 rounded-xl flex items-center justify-center text-3xl border-2 border-white shadow-lg hover:scale-110 transition-all relative ${
+                className={`flex-shrink-0 ${item.color} w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden border-2 border-white shadow-lg hover:scale-110 transition-all relative ${
                   activeTab === 'ar' && !arPlaneDetected ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {item.icon}
+                <img src={item.icon} alt={item.korTitle} className="w-full h-full object-cover" />
                 {item.arUrl && item.arUrl !== '#' && (
                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                     <ExternalLink size={10} className="text-white" />
