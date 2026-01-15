@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, Sparkles } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
 import type { ArtSpot, ArtItem } from '@/lib/types'
 
@@ -21,6 +21,7 @@ export default function QRScannerView({
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
+  const [collectPhase, setCollectPhase] = useState<'scanning' | 'collected'>('scanning')
 
   useEffect(() => {
     // 실제 QR 코드가 있는 spot이고 GPS 범위 내에 있는 경우만 카메라 실행
@@ -83,12 +84,76 @@ export default function QRScannerView({
   // 가상 작품인 경우 - 시뮬레이션 수집
   if (!targetSpot?.isActive) {
     useEffect(() => {
-      const timer = setTimeout(() => {
+      // 2초 후 수집 완료 화면으로 전환
+      const scanTimer = setTimeout(() => {
+        setCollectPhase('collected')
+      }, 2000)
+
+      // 4초 후 실제 수집 처리
+      const collectTimer = setTimeout(() => {
         onSuccess(targetSpot)
-      }, 3500)
-      return () => clearTimeout(timer)
+      }, 4000)
+
+      return () => {
+        clearTimeout(scanTimer)
+        clearTimeout(collectTimer)
+      }
     }, [onSuccess, targetSpot])
 
+    // 수집 완료 화면
+    if (collectPhase === 'collected') {
+      return (
+        <div className="w-full h-full bg-gradient-to-br from-purple-900 via-purple-800 to-pink-900 flex flex-col items-center justify-center relative overflow-hidden">
+          {/* 배경 파티클 효과 */}
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`
+                }}
+              />
+            ))}
+          </div>
+
+          {/* 메인 컨텐츠 */}
+          <div className="relative z-10 flex flex-col items-center animate-scaleIn">
+            {/* 작품 이미지 */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-white/20 rounded-3xl blur-xl animate-pulse" />
+              <div className={`w-48 h-48 ${targetSpot.color} rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white/50 relative`}>
+                <img
+                  src={targetSpot.icon}
+                  alt={targetSpot.korTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {/* 반짝이 효과 */}
+              <Sparkles className="absolute -top-3 -right-3 w-8 h-8 text-yellow-300 animate-pulse" />
+              <Sparkles className="absolute -bottom-2 -left-2 w-6 h-6 text-yellow-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            </div>
+
+            {/* 텍스트 */}
+            <div className="mt-8 text-center">
+              <p className="text-yellow-300 text-sm font-bold tracking-widest mb-2 animate-pulse">✨ 수집 완료! ✨</p>
+              <h2 className="text-white text-3xl font-serif font-bold mb-2">{targetSpot.korTitle}</h2>
+              <p className="text-white/70">{targetSpot.artist}</p>
+            </div>
+
+            {/* 컬렉션 이동 안내 */}
+            <div className="mt-8 text-white/60 text-sm animate-pulse">
+              컬렉션으로 이동 중...
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // 스캔 중 화면
     return (
       <div className="w-full h-full bg-black flex flex-col items-center justify-center relative">
         <button
@@ -98,12 +163,33 @@ export default function QRScannerView({
           <X size={20} />
         </button>
 
-        <div className="relative w-80 h-80 border-4 border-white rounded-3xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20" />
+        {/* 스캔 프레임 */}
+        <div className="relative w-72 h-72 rounded-3xl overflow-hidden">
+          {/* 작품 이미지 미리보기 (흐릿하게) */}
+          <div className={`absolute inset-0 ${targetSpot.color} flex items-center justify-center`}>
+            <img
+              src={targetSpot.icon}
+              alt={targetSpot.korTitle}
+              className="w-full h-full object-cover opacity-30 blur-sm"
+            />
+          </div>
+
+          {/* 스캔 오버레이 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-pink-500/30" />
+
+          {/* 스캔 라인 */}
           <div
-            className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent animate-scan-down"
-            style={{ animationDuration: '3.5s' }}
+            className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent"
+            style={{
+              animation: 'scanDown 2s ease-in-out infinite',
+            }}
           />
+
+          {/* 코너 프레임 */}
+          <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-white rounded-tl-3xl" />
+          <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-white rounded-tr-3xl" />
+          <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-white rounded-bl-3xl" />
+          <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-white rounded-br-3xl" />
         </div>
 
         <p className="mt-6 text-white text-lg">가상 작품 수집 중...</p>
