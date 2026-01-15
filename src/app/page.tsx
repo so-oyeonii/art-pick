@@ -75,14 +75,14 @@ export default function App() {
   const handleScanSuccess = (art: ArtItem) => {
     // 이미 수집된 작품인지 확인
     const alreadyCollected = inventory.some(item => item.id === art.id)
-    
+
     if (!alreadyCollected) {
       const newItem = {
         ...art,
         collectedAt: new Date().toISOString()
       }
       setInventory([...inventory, newItem])
-      
+
       // 실제 QR vs 가상 작품에 따라 다른 메시지
       if ((art as ArtSpot).isActive) {
         showToast('🎉 실제 작품 수집!', `${art.korTitle}을(를) 획득했습니다!`)
@@ -92,8 +92,13 @@ export default function App() {
     } else {
       showToast('이미 수집함', '이 작품은 이미 컬렉션에 있습니다.')
     }
-    
-    // QR 스캔 후 컬렉션 페이지로 이동 (수집된 작품 확인)
+
+    // AR URL이 있으면 바로 AR 웹페이지 열기
+    if (art.arUrl && art.arUrl !== '#') {
+      window.open(art.arUrl, '_blank')
+    }
+
+    // 컬렉션 페이지로 이동
     setCurrentView('collection')
   }
 

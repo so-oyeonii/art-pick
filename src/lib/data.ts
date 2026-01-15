@@ -82,7 +82,7 @@ export const ART_SPOTS: ArtSpot[] = [
     isActive: false,
     requiresGPS: false,
     arUrl: '#',
-    icon: '/artworks/rabbit.png',
+    icon: '/artworks/alice.png',
     color: 'bg-slate-50',
     accent: 'text-slate-600',
     description: '골프장 클럽하우스 - Coming Soon'

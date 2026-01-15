@@ -42,12 +42,11 @@ export default function CollectionView({ inventory, onRemove, onNavigateToSpot }
             <p className="text-neutral-500 text-sm mt-2">지도에서 아트스팟을 찾아보세요!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {inventory.map((item) => (
               <div
                 key={item.id}
-                onClick={() => handleCardClick(item)}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden group relative cursor-pointer"
+                className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all overflow-hidden group relative border border-neutral-100"
               >
                 {/* 삭제 버튼 */}
                 <button
@@ -57,53 +56,62 @@ export default function CollectionView({ inventory, onRemove, onNavigateToSpot }
                       onRemove(item.id)
                     }
                   }}
-                  className="absolute top-4 right-4 z-10 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                  className="absolute top-3 right-3 z-10 w-7 h-7 bg-neutral-100 text-neutral-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 hover:text-white"
                   title="삭제"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                 </button>
 
-                <div className="p-6">
-                  <div className="flex items-start gap-4">
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
                     {/* 이미지 */}
-                    <div className={`w-20 h-20 ${item.color} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 p-2`}>
-                      <img 
-                        src={item.icon} 
-                        alt={item.korTitle} 
+                    <div className={`w-16 h-16 ${item.color} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 p-1.5`}>
+                      <img
+                        src={item.icon}
+                        alt={item.korTitle}
                         className="w-full h-full object-contain"
                         loading="lazy"
                         onError={(e) => {
-                          console.error('이미지 로드 실패:', item.icon)
-                          // 이미지 로드 실패 시 텍스트로 대체
                           e.currentTarget.style.display = 'none'
                           const parent = e.currentTarget.parentElement
                           if (parent && !parent.querySelector('.fallback-icon')) {
                             const fallback = document.createElement('div')
-                            fallback.className = 'fallback-icon text-4xl'
+                            fallback.className = 'fallback-icon text-3xl'
                             fallback.textContent = item.korTitle.charAt(0)
                             parent.appendChild(fallback)
                           }
                         }}
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-serif text-xl font-bold mb-1">{item.korTitle}</h3>
-                      <p className="text-neutral-600 text-sm mb-2">{item.artist}</p>
-                      <p className="text-neutral-500 text-sm line-clamp-2">{item.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-serif text-lg font-bold mb-0.5 truncate">{item.korTitle}</h3>
+                      <p className="text-neutral-500 text-sm">{item.artist}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-semibold rounded-full">
+                          <MapPin size={10} />
+                          수집완료
+                        </span>
+                        {item.collectedAt && (
+                          <span className="text-[10px] text-neutral-400">
+                            {new Date(item.collectedAt).toLocaleDateString('ko-KR')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">
-                      <MapPin size={12} />
-                      LBS GET
-                    </span>
-                    {item.collectedAt && (
-                      <span className="text-xs text-neutral-400">
-                        {new Date(item.collectedAt).toLocaleDateString('ko-KR')}
-                      </span>
-                    )}
-                  </div>
+
+                  {/* AR 체험 버튼 */}
+                  <button
+                    onClick={() => handleCardClick(item)}
+                    className={`w-full mt-3 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                      item.arUrl && item.arUrl !== '#'
+                        ? 'bg-neutral-900 text-white hover:bg-neutral-800'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    <ExternalLink size={16} />
+                    {item.arUrl && item.arUrl !== '#' ? 'AR 체험하기' : '이미지 보기'}
+                  </button>
                 </div>
               </div>
             ))}
