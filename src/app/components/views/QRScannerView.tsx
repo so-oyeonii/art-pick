@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, AlertCircle, Sparkles } from 'lucide-react'
+import { X, AlertCircle, Sparkles, Camera, Move } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
 import type { ArtSpot, ArtItem } from '@/lib/types'
 
@@ -19,9 +19,59 @@ export default function QRScannerView({
   isNearTarget
 }: QRScannerViewProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
-  const [collectPhase, setCollectPhase] = useState<'scanning' | 'collected'>('scanning')
+  const [collectPhase, setCollectPhase] = useState<'camera' | 'placing' | 'collected'>('camera')
+  const [artPosition, setArtPosition] = useState({ x: 50, y: 50 })
+  const [artScale, setArtScale] = useState(1)
+  const [cameraReady, setCameraReady] = useState(false)
+
+  // 가상 작품용 카메라 시작
+  useEffect(() => {
+    if (targetSpot?.isActive) return // 실제 QR 작품이면 패스
+
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        })
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          setCameraReady(true)
+        }
+      } catch (err) {
+        console.error('카메라 오류:', err)
+        setError('카메라를 시작할 수 없습니다')
+      }
+    }
+
+    startCamera()
+
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
+        tracks.forEach(track => track.stop())
+      }
+    }
+  }, [targetSpot?.isActive])
+
+  // 가상 작품 배치 후 수집 처리
+  useEffect(() => {
+    if (collectPhase === 'placing') {
+      const timer = setTimeout(() => {
+        setCollectPhase('collected')
+      }, 2500)
+      return () => clearTimeout(timer)
+    }
+
+    if (collectPhase === 'collected') {
+      const timer = setTimeout(() => {
+        onSuccess(targetSpot)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [collectPhase, onSuccess, targetSpot])
 
   useEffect(() => {
     // 실제 QR 코드가 있는 spot이고 GPS 범위 내에 있는 경우만 카메라 실행
@@ -35,28 +85,22 @@ export default function QRScannerView({
         scannerRef.current = scanner
 
         await scanner.start(
-          { facingMode: 'environment' }, // 후면 카메라
+          { facingMode: 'environment' },
           {
             fps: 10,
             qrbox: { width: 250, height: 250 }
           },
           (decodedText) => {
-            // SwiftXR URL 패턴 확인
             if (decodedText.includes('swiftxr.site')) {
               scanner.stop().then(() => {
                 scannerRef.current = null
-                // AR 링크 새 창에서 열기
                 window.open(decodedText, '_blank')
-                // 컬렉션에 추가
                 onSuccess(targetSpot)
               }).catch(console.error)
             }
           },
-          (errorMessage) => {
-            // QR 코드를 찾지 못한 경우는 무시 (계속 스캔)
-          }
+          () => {}
         )
-
         setScanning(true)
       } catch (err: any) {
         console.error('QR Scanner Error:', err)
@@ -68,43 +112,17 @@ export default function QRScannerView({
 
     return () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current
-          .stop()
-          .then(() => {
-            scannerRef.current = null
-          })
-          .catch((err) => {
-            // 이미 중지된 경우 무시
-            console.log('Scanner already stopped')
-          })
+        scannerRef.current.stop().catch(() => {})
       }
     }
   }, [targetSpot, isNearTarget, onSuccess])
 
-  // 가상 작품인 경우 - 시뮬레이션 수집
+  // 가상 작품인 경우 - AR 카메라 모드
   if (!targetSpot?.isActive) {
-    useEffect(() => {
-      // 2초 후 수집 완료 화면으로 전환
-      const scanTimer = setTimeout(() => {
-        setCollectPhase('collected')
-      }, 2000)
-
-      // 4초 후 실제 수집 처리
-      const collectTimer = setTimeout(() => {
-        onSuccess(targetSpot)
-      }, 4000)
-
-      return () => {
-        clearTimeout(scanTimer)
-        clearTimeout(collectTimer)
-      }
-    }, [onSuccess, targetSpot])
-
     // 수집 완료 화면
     if (collectPhase === 'collected') {
       return (
         <div className="w-full h-full bg-gradient-to-br from-purple-900 via-purple-800 to-pink-900 flex flex-col items-center justify-center relative overflow-hidden">
-          {/* 배경 파티클 효과 */}
           <div className="absolute inset-0 overflow-hidden">
             {[...Array(20)].map((_, i) => (
               <div
@@ -120,32 +138,23 @@ export default function QRScannerView({
             ))}
           </div>
 
-          {/* 메인 컨텐츠 */}
-          <div className="relative z-10 flex flex-col items-center animate-scaleIn">
-            {/* 작품 이미지 */}
+          <div className="relative z-10 flex flex-col items-center animate-scaleIn px-6">
             <div className="relative">
               <div className="absolute -inset-4 bg-white/20 rounded-3xl blur-xl animate-pulse" />
-              <div className={`w-48 h-48 ${targetSpot.color} rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white/50 relative`}>
-                <img
-                  src={targetSpot.icon}
-                  alt={targetSpot.korTitle}
-                  className="w-full h-full object-cover"
-                />
+              <div className={`w-40 h-40 sm:w-48 sm:h-48 ${targetSpot.color} rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white/50`}>
+                <img src={targetSpot.icon} alt={targetSpot.korTitle} className="w-full h-full object-cover" />
               </div>
-              {/* 반짝이 효과 */}
               <Sparkles className="absolute -top-3 -right-3 w-8 h-8 text-yellow-300 animate-pulse" />
               <Sparkles className="absolute -bottom-2 -left-2 w-6 h-6 text-yellow-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
             </div>
 
-            {/* 텍스트 */}
-            <div className="mt-8 text-center">
+            <div className="mt-6 text-center">
               <p className="text-yellow-300 text-sm font-bold tracking-widest mb-2 animate-pulse">✨ 수집 완료! ✨</p>
-              <h2 className="text-white text-3xl font-serif font-bold mb-2">{targetSpot.korTitle}</h2>
+              <h2 className="text-white text-2xl sm:text-3xl font-serif font-bold mb-2">{targetSpot.korTitle}</h2>
               <p className="text-white/70">{targetSpot.artist}</p>
             </div>
 
-            {/* 컬렉션 이동 안내 */}
-            <div className="mt-8 text-white/60 text-sm animate-pulse">
+            <div className="mt-6 text-white/60 text-sm animate-pulse">
               컬렉션으로 이동 중...
             </div>
           </div>
@@ -153,47 +162,132 @@ export default function QRScannerView({
       )
     }
 
-    // 스캔 중 화면
+    // AR 카메라 모드 (배치 중)
     return (
-      <div className="w-full h-full bg-black flex flex-col items-center justify-center relative">
+      <div className="w-full h-full bg-black flex flex-col relative overflow-hidden">
+        {/* 카메라 피드 */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* 카메라 오버레이 UI */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* 상단 그라디언트 */}
+          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
+          {/* 하단 그라디언트 */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
+        </div>
+
+        {/* 닫기 버튼 */}
         <button
           onClick={onBack}
-          className="absolute top-6 left-6 z-10 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition"
+          className="absolute top-4 left-4 z-20 w-10 h-10 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/60 transition"
         >
           <X size={20} />
         </button>
 
-        {/* 스캔 프레임 */}
-        <div className="relative w-72 h-72 rounded-3xl overflow-hidden">
-          {/* 작품 이미지 미리보기 (흐릿하게) */}
-          <div className={`absolute inset-0 ${targetSpot.color} flex items-center justify-center`}>
-            <img
-              src={targetSpot.icon}
-              alt={targetSpot.korTitle}
-              className="w-full h-full object-cover opacity-30 blur-sm"
-            />
+        {/* 카메라 상태 표시 */}
+        {!cameraReady && !error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+            <div className="text-center">
+              <Camera className="w-12 h-12 text-white/60 mx-auto mb-3 animate-pulse" />
+              <p className="text-white/80">카메라 시작 중...</p>
+            </div>
           </div>
+        )}
 
-          {/* 스캔 오버레이 */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-pink-500/30" />
+        {/* 에러 표시 */}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+            <div className="text-center px-6">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-white mb-2">카메라 오류</p>
+              <p className="text-white/60 text-sm">{error}</p>
+              <button onClick={onBack} className="mt-4 px-6 py-2 bg-white/20 rounded-full text-white">
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
 
-          {/* 스캔 라인 */}
+        {/* AR 작품 오버레이 */}
+        {cameraReady && (
           <div
-            className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent"
+            className="absolute z-10 transition-all duration-300"
             style={{
-              animation: 'scanDown 2s ease-in-out infinite',
+              left: `${artPosition.x}%`,
+              top: `${artPosition.y}%`,
+              transform: `translate(-50%, -50%) scale(${artScale})`,
             }}
-          />
+          >
+            {/* 작품 이미지 */}
+            <div className={`relative ${collectPhase === 'placing' ? 'animate-pulse' : ''}`}>
+              {/* 그림자 */}
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/30 rounded-full blur-md" />
 
-          {/* 코너 프레임 */}
-          <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-white rounded-tl-3xl" />
-          <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-white rounded-tr-3xl" />
-          <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-white rounded-bl-3xl" />
-          <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-white rounded-br-3xl" />
+              {/* 작품 */}
+              <div className={`w-36 h-36 sm:w-44 sm:h-44 ${targetSpot.color} rounded-2xl shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white/80 ${
+                collectPhase === 'placing' ? 'ring-4 ring-green-400 ring-opacity-75' : ''
+              }`}>
+                <img
+                  src={targetSpot.icon}
+                  alt={targetSpot.korTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* 배치 중 표시 */}
+              {collectPhase === 'placing' && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap animate-bounce">
+                  배치 완료!
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 하단 UI */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8">
+          <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4">
+            {collectPhase === 'camera' ? (
+              <>
+                <div className="text-center mb-4">
+                  <h3 className="text-white font-bold text-lg">{targetSpot.korTitle}</h3>
+                  <p className="text-white/60 text-sm flex items-center justify-center gap-1 mt-1">
+                    <Move size={14} />
+                    작품을 원하는 위치에 배치하세요
+                  </p>
+                </div>
+
+                {/* 배치 버튼 */}
+                <button
+                  onClick={() => setCollectPhase('placing')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+                >
+                  <Sparkles size={18} />
+                  여기에 배치하기
+                </button>
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-green-400 font-bold animate-pulse">✨ 작품을 수집하는 중...</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <p className="mt-6 text-white text-lg">가상 작품 수집 중...</p>
-        <p className="text-white/60 text-sm mt-2">{targetSpot?.korTitle}</p>
+        {/* 조준점 (배치 전) */}
+        {collectPhase === 'camera' && cameraReady && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
+            <div className="w-20 h-20 border-2 border-white/30 rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-white/50 rounded-full" />
+            </div>
+          </div>
+        )}
       </div>
     )
   }

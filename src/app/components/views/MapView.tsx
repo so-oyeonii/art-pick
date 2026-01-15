@@ -267,7 +267,7 @@ export default function MapView({
       </div>
 
       {/* 하단 시트 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md rounded-t-2xl shadow-xl p-4 pb-6">
+      <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md rounded-t-2xl shadow-xl p-4 pb-safe">
         {targetSpot ? (
           <div>
             {/* 드래그 핸들 */}
